@@ -1,6 +1,9 @@
 package processing
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 type Batch struct {
 	ID        string
@@ -19,6 +22,7 @@ type Job struct {
 }
 
 type Execution struct {
+	mu             sync.Mutex
 	ID             string
 	BatchID        string
 	Status         string
@@ -39,9 +43,27 @@ type BatchRepository interface {
 }
 
 func (e *Execution) IncrementSuccess() {
+	defer e.mu.Unlock()
+
+	e.mu.Lock()
 	e.ProcessedItems++
 }
 
 func (e *Execution) SetDuration() {
 	e.Duration = time.Since(e.StartTime)
+}
+
+func (e *Execution) IncrementFailure() {
+	defer e.mu.Unlock()
+
+	e.mu.Lock()
+	e.FailedItems++
+}
+
+func (e *Execution) Finalize(status string) {
+	defer e.mu.Unlock()
+
+	e.mu.Lock()
+	e.Status = status
+	e.SetDuration()
 }

@@ -1,15 +1,21 @@
 package processing
 
 import (
-	"fmt"
+	"errors"
+	"math/rand/v2"
 	"time"
 )
 
-type SimpleProcessor struct{}
+type SimpleProcessor struct {
+	maxRetries int
+}
 
 func (s *SimpleProcessor) Process(j *Job) error {
-	time.Sleep(500 * time.Millisecond)
+	if rand.Float32() < 0.3 {
+		return errors.New("falha temporária de comunicação com API externa")
+	}
+
+	time.Sleep(100 * time.Millisecond)
 	j.Status = "Success"
-	fmt.Printf("Job %s concluído com sucesso.\n", j.ID)
 	return nil
 }
