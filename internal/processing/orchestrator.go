@@ -2,6 +2,7 @@ package processing
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -54,35 +55,44 @@ func (o *Orchestrator) Start(batch *Batch) {
 
 	exec.Finalize("Completed")
 
-	fmt.Printf("--- Resumo da Execução %s ---\n", exec.ID)
-	fmt.Printf("Status: %s\n", exec.Status)
-	fmt.Printf("Sucessos: %d | Falhas: %d\n", exec.ProcessedItems, exec.FailedItems)
-	fmt.Printf("Duração: %v\n", exec.Duration)
-	fmt.Printf("------------------------------\n")
+	slog.Info("execução finalizada",
+		"exec_id", exec.ID,
+		"status", exec.Status,
+		"sucessos", exec.ProcessedItems,
+		"falhas", exec.FailedItems,
+		"duracao_ms", exec.Duration.Milliseconds(),
+	)
 }
 
 func (o *Orchestrator) worker(id int, jobs <-chan *Job, wg *sync.WaitGroup, exec *Execution) {
 	defer wg.Done()
 
-	fmt.Printf("Worker %d pronto para trabalhar!\n", id)
+	l := slog.With(
+		slog.Int("worker_id", id),
+		slog.String("batch_id", exec.BatchID),
+		slog.String("exec_id", exec.ID),
+	)
+
+	l.Info("worker iniciado e aguardando jobs")
 
 	for job := range jobs {
+		jl := l.With(slog.String("job_id", job.ID))
+
+		jl.Debug("processando tentativa")
 		success := false
 		maxAttempts := 3
 
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
-			fmt.Printf("Worker %d processando job %s...\n", id, job.ID)
-
 			err := o.processor.Process(job)
 
 			if err == nil {
 				success = true
+				jl.Info("job processado com sucesso")
 				break
 			}
 
 			job.RetryCount = attempt
-			fmt.Printf("[Worker %d] Tentativa %d falhou para o Job %s: %v\n", id, attempt, job.ID, err)
-
+			jl.Error("falha no processamento do job", "error", err, "retry_count", job.RetryCount)
 			if attempt < maxAttempts {
 				waitTime := time.Duration(1<<attempt) * time.Second
 				time.Sleep(waitTime)
@@ -92,7 +102,7 @@ func (o *Orchestrator) worker(id int, jobs <-chan *Job, wg *sync.WaitGroup, exec
 		if success {
 			exec.IncrementSuccess()
 		} else {
-			fmt.Printf("[Worker %d] Job %s falhou após %d tentativas.\n", id, job.ID, maxAttempts)
+			jl.Error("O job falhou e excedeu as tentativas", "job", job.ID, "retry_count", job.RetryCount)
 			exec.IncrementFailure()
 		}
 	}

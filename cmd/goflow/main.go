@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -11,9 +11,13 @@ import (
 )
 
 func main() {
+	platform.InitLogger()
+	pool, _ := platform.NewPostgresPool()
+	defer pool.Close()
+
 	mux := http.NewServeMux()
 
-	repo := platform.NewMemoryBatchRepository()
+	repo := platform.NewPostgresBatchRepository(pool)
 
 	processor := &processing.SimpleProcessor{}
 
@@ -27,12 +31,12 @@ func main() {
 
 	port := ":3000"
 
-	fmt.Printf("Servidor do GoFlow rodando na porta %s\n", port)
+	slog.Info("servidor iniciado", "port", 3000)
 
 	err := http.ListenAndServe(port, mux)
 
 	if err != nil {
-		fmt.Printf("Falha ao iniciar o servidor: %s", err)
+		slog.Error("Falha ao iniciar o servidor", "error", err)
 		os.Exit(1)
 	}
 }
