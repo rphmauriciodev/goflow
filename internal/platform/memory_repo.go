@@ -2,6 +2,7 @@ package platform
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 
 	"github.com/rphmauriciodev/goflow/internal/processing"
@@ -36,4 +37,9 @@ func (r *MemoryBatchRepository) GetByID(id string) (*processing.Batch, error) {
 		return nil, errors.New("lote não encontrado")
 	}
 	return batch, nil
+}
+
+func (r *MemoryBatchRepository) UpdateExecutionStatus(exec *processing.Execution) error {
+	slog.Info("[Mock] Status da execução atualizado", "execução", exec.ID, "status", exec.Status)
+	return nil
 }

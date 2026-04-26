@@ -8,12 +8,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 )
 
 func NewPostgresPool() (*pgxpool.Pool, error) {
-	_ = godotenv.Load()
-
 	connString := os.Getenv("DATABASE_URL")
 	if connString == "" {
 		return nil, fmt.Errorf("variável DATABASE_URL não definida")

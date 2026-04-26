@@ -19,7 +19,7 @@ func NewOrchestrator(workerCount int, p Processor) *Orchestrator {
 	}
 }
 
-func (o *Orchestrator) Start(batch *Batch) {
+func (o *Orchestrator) Start(batch *Batch, repo BatchRepository) {
 	jobsChan := make(chan *Job, 100)
 
 	var wg sync.WaitGroup
@@ -54,6 +54,10 @@ func (o *Orchestrator) Start(batch *Batch) {
 	wg.Wait()
 
 	exec.Finalize("Completed")
+
+	if err := repo.UpdateExecutionStatus(exec); err != nil {
+		slog.Error("falha ao persistir status final", "error", err)
+	}
 
 	slog.Info("execução finalizada",
 		"exec_id", exec.ID,

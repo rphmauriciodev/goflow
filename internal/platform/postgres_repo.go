@@ -57,3 +57,41 @@ func (r *PostgresBatchRepository) GetByID(id string) (*processing.Batch, error) 
 
 	return &b, nil
 }
+
+func (r *PostgresBatchRepository) UpdateExecutionStatus(exec *processing.Execution) error {
+	ctx := context.Background()
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("erro ao iniciar transação: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	query := `
+		UPDATE executions 
+		SET processed_items = $1, 
+		    failed_items = $2, 
+		    status = $3, 
+		    duration = $4
+		WHERE id = $5
+	`
+
+	_, err = tx.Exec(ctx, query,
+		exec.ProcessedItems,
+		exec.FailedItems,
+		exec.Status,
+		exec.Duration,
+		exec.ID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("erro ao executar update na transação: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("erro ao confirmar transação (commit): %w", err)
+	}
+
+	return nil
+}

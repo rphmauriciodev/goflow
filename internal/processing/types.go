@@ -40,6 +40,7 @@ type Processor interface {
 type BatchRepository interface {
 	Save(b *Batch) error
 	GetByID(id string) (*Batch, error)
+	UpdateExecutionStatus(exec *Execution) error
 }
 
 func (e *Execution) IncrementSuccess() {
