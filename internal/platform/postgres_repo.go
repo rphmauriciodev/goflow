@@ -69,22 +69,24 @@ func (r *PostgresBatchRepository) UpdateExecutionStatus(exec *processing.Executi
 	defer tx.Rollback(ctx)
 
 	query := `
-		UPDATE executions 
-		SET processed_items = $1, 
-		    failed_items = $2, 
-		    status = $3, 
-		    duration = $4
-		WHERE id = $5
+		INSERT INTO executions (id, batch_id, status, total_items, processed_items, failed_items, start_time, duration)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (id) DO UPDATE SET
+			status = EXCLUDED.status,
+			processed_items = EXCLUDED.processed_items,
+			failed_items = EXCLUDED.failed_items,
+			duration = EXCLUDED.duration;
 	`
-
-	_, err = tx.Exec(ctx, query,
+	_, err = r.pool.Exec(ctx, query,
+		exec.ID,
+		exec.BatchID,
+		exec.Status,
+		exec.TotalItems,
 		exec.ProcessedItems,
 		exec.FailedItems,
-		exec.Status,
+		exec.StartTime,
 		exec.Duration,
-		exec.ID,
 	)
-
 	if err != nil {
 		return fmt.Errorf("erro ao executar update na transação: %w", err)
 	}
@@ -94,4 +96,44 @@ func (r *PostgresBatchRepository) UpdateExecutionStatus(exec *processing.Executi
 	}
 
 	return nil
+}
+
+func (r *PostgresBatchRepository) GetSummary() (*processing.ExecutionSummary, error) {
+	summary := &processing.ExecutionSummary{
+		StatusCounts: make(map[string]int),
+	}
+
+	query := `
+		SELECT 
+			COUNT(DISTINCT batch_id) as total_batches,
+			COALESCE(SUM(processed_items),0) as total_processed,
+			COALESCE(SUM(failed_items),0) as total_failed
+		FROM executions
+	`
+	err := r.pool.QueryRow(context.Background(), query).Scan(
+		&summary.TotalBatches,
+		&summary.TotalProcessed,
+		&summary.TotalFailed,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	statusQuery := "SELECT status, COUNT(*) FROM executions GROUP BY status"
+	rows, err := r.pool.Query(context.Background(), statusQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var status string
+		var count int
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, err
+		}
+		summary.StatusCounts[status] = count
+	}
+
+	return summary, nil
 }

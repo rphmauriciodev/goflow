@@ -12,18 +12,20 @@ import (
 )
 
 type BatchRequest struct {
-	Source  string `json:source`
-	Type    string `json:source`
-	Payload string `json:source`
+	Source  string `json:"source"`
+	Type    string `json:"type"`
+	Payload string `json:"payload"`
 }
 
 type Handler struct {
-	repo processing.BatchRepository
+	repo         processing.BatchRepository
+	orchestrator *processing.Orchestrator
 }
 
-func NewHandler(r processing.BatchRepository) *Handler {
+func NewHandler(r processing.BatchRepository, o *processing.Orchestrator) *Handler {
 	return &Handler{
-		repo: r,
+		repo:         r,
+		orchestrator: o,
 	}
 }
 
@@ -79,13 +81,13 @@ func (h *Handler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erro ao salvar lote", http.StatusInternalServerError)
 		return
 	}
+	go h.orchestrator.Start(batch, h.repo)
 
-	fmt.Printf("Lote recebido com sucesso: %s (Fonte: %s)\n", batch.ID, batch.Source)
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-
 	json.NewEncoder(w).Encode(map[string]string{
 		"batch_id": batch.ID,
 		"status":   "accepted",
+		"message":  "Processamento iniciado em background",
 	})
 }

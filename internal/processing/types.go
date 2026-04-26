@@ -33,6 +33,13 @@ type Execution struct {
 	Duration       time.Duration
 }
 
+type ExecutionSummary struct {
+	TotalBatches   int
+	TotalProcessed int
+	TotalFailed    int
+	StatusCounts   map[string]int
+}
+
 type Processor interface {
 	Process(j *Job) error
 }
@@ -41,6 +48,7 @@ type BatchRepository interface {
 	Save(b *Batch) error
 	GetByID(id string) (*Batch, error)
 	UpdateExecutionStatus(exec *Execution) error
+	GetSummary() (*ExecutionSummary, error)
 }
 
 func (e *Execution) IncrementSuccess() {

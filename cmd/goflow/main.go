@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/rphmauriciodev/goflow/internal/ingestion"
@@ -34,26 +33,12 @@ func main() {
 
 	orchestrator := processing.NewOrchestrator(5, processor)
 
-	batch := &processing.Batch{
-		ID:        "LOTE-SALVADOR-001",
-		Source:    "Upload Manual",
-		Type:      "JSON",
-		CreatedAt: time.Now(),
-	}
-
-	if err := repo.Save(batch); err != nil {
-		slog.Error("não foi possível registar o lote inicial", "error", err)
-		return
-	}
-
-	orchestrator.Start(batch, repo)
-
-	ingestionHandler := ingestion.NewHandler(repo)
+	ingestionHandler := ingestion.NewHandler(repo, orchestrator)
 	ingestionHandler.RegisterRoutes(mux)
 
-	port := ":3000"
+	port := ":8080"
 
-	slog.Info("servidor iniciado", "port", 3000)
+	slog.Info("servidor iniciado", "port", port)
 
 	err = http.ListenAndServe(port, mux)
 
