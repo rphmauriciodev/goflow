@@ -91,6 +91,10 @@ O servidor roda por padrão na porta `:8080`.
 
 - `POST /batches`: Recebe um novo lote para processamento.
 
+## Licença
+
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
 ---
 
 Desenvolvido por [Maurício](https://github.com/rphmauriciodev)
