@@ -1,3 +1,32 @@
 #Enviroments
 .env
-Makefile
+
+# Binários e arquivos compilados
+/goflow
+/dashboard
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ferramentas de Teste e Cobertura
+*.test
+*.out
+*.coverprofile
+
+# Dependências (se você usar o comando 'go mod vendor')
+# vendor/
+
+# Arquivos de editores e IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Arquivos do Sistema Operacional
+.DS_Store
+Thumbs.db
