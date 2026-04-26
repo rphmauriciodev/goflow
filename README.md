@@ -82,7 +82,6 @@ make watch-dashboard
 │   ├── ingestion/    # Handlers HTTP e recebimento de dados
 │   ├── processing/   # Lógica do Orquestrador e Processadores
 │   ├── platform/     # Infraestrutura (DB, Logger, Repositórios)
-│   └── reporting/    # Lógica de agregação para o dashboard
 └── Makefile          # Atalhos para comandos comuns
 ```
 
